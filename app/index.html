@@ -1,72 +1,55 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sunset Cover Studio — GTA-style cover art maker</title>
+<title>Sunset Cover Studio — multi-panel cover art maker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="masthead">
-  <div class="brand">
-    <h1>Sunset Cover Studio</h1>
-    <p class="tagline">Turn any photo into multi-panel, GTA-style cover art — slanted panels, a striped retro sun, neon grades, one-click looks, PNG export. Fully offline.</p>
-  </div>
+<header class="topbar">
+  <h1>Sunset Cover Studio</h1>
+  <p class="tagline">Turn any photo into multi-panel cover art: slanted panels, a striped retro sun, neon grades and bold poster lettering — exported as a PNG, entirely offline.</p>
 </header>
-<main class="wrap">
-  <section class="stage-wrap">
-    <canvas id="preview" width="1920" height="1080"></canvas>
-    <p class="hint">Drag a panel to reposition its photo. Pick a panel card to change its photo, zoom and crop.</p>
+<main class="studio">
+  <section class="stage">
+    <canvas id="preview" width="960" height="540"></canvas>
+    <p class="hint">Drag a panel to reposition its photo, or drop a photo file onto a panel to use it there.</p>
   </section>
   <aside class="controls">
-    <div class="group">
+    <div class="group" id="group-looks">
       <h2>Looks — one click</h2>
-      <div id="looks" class="seg-row"></div>
+      <div class="looks" id="looks"></div>
     </div>
-    <div class="group">
+    <div class="group" id="group-layout">
       <h2>Layout</h2>
-      <div id="layouts" class="seg-row"></div>
+      <div class="segmented" id="layouts"></div>
     </div>
-    <div class="group">
+    <div class="group" id="group-size">
       <h2>Post size</h2>
-      <div id="sizes" class="seg-row"></div>
+      <div class="segmented" id="sizes"></div>
     </div>
-    <div class="group">
+    <div class="group" id="group-grade">
       <h2>Colour grade</h2>
-      <div id="grades" class="seg-row"></div>
+      <div class="segmented" id="grades"></div>
     </div>
-    <div class="group">
+    <div class="group" id="group-caption">
       <h2>Caption</h2>
-      <label class="field">Title
-        <input id="title-input" type="text" maxlength="40" value="Sunset Heist">
-      </label>
-      <label class="field">Subtitle
-        <input id="subtitle-input" type="text" maxlength="60" value="Sunset Coast · Summer">
-      </label>
-      <label class="field">Title size
-        <input id="title-size" type="range" min="60" max="140" step="1" value="100">
-      </label>
-      <div class="field">Title position
-        <div id="title-pos" class="seg-row"></div>
-      </div>
-      <label class="field">Tilt
-        <input id="tilt" type="range" min="-8" max="8" step="0.5" value="-2">
-      </label>
-      <label class="check">
-        <input id="outline-toggle" type="checkbox" checked> Title outline
-      </label>
+      <label class="field">Title <input id="title" type="text" maxlength="42" autocomplete="off"></label>
+      <label class="field">Subtitle <input id="subtitle" type="text" maxlength="60" autocomplete="off"></label>
+      <label class="field">Title size <input id="titlesize" type="range" min="0.6" max="1.5" step="0.01"></label>
+      <div class="segmented" id="titlepos"></div>
+      <label class="field">Tilt <input id="tilt" type="range" min="-8" max="8" step="0.5"></label>
+      <label class="check"><input id="outline" type="checkbox"> Heavy outline</label>
     </div>
-    <div class="group">
+    <div class="group" id="group-panels">
       <h2>Panels</h2>
       <div id="panels"></div>
     </div>
-    <button id="export-btn" type="button">Export PNG</button>
-    <p class="fineprint">Fonts: Anton and Bebas Neue, SIL Open Font License 1.1 (see app/fonts/). Sample photos are model-made and free to use. No Rockstar artwork, logos or fonts.</p>
+    <button id="export" class="export" type="button">Export PNG</button>
+    <p class="note">Exports at the full post size. Your photos never leave this machine.</p>
   </aside>
 </main>
-<script src="src/state.js"></script>
-<script src="src/cover.js"></script>
-<script src="src/shots.js"></script>
-<script src="src/main.js"></script>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

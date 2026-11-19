@@ -1,15 +1,18 @@
-// Sunset Cover Studio — main.ts (v3 rebuild)
-// The hand-in program: copies app/ and screenshots/ into the output
-// directory and writes dossier.json with buildDossier from the kit's
-// vendor library. Node 22, standard library only; MAKEFUN_OUTPUT_DIR
-// stands in for /output outside the grader.
+// Sunset Cover Studio — the hand-in program (v2 rebuild).
+//
+// Copies app/ and screenshots/ into the output directory and writes the
+// entry's dossier.json with buildDossier from the kit's vendor library,
+// under the bounty's caps. Node 22, standard library only; MAKEFUN_OUTPUT_DIR
+// stands in for /output outside the grader. The run is deterministic: the
+// same repository writes the same bytes every time.
 
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { buildDossier } from './vendor/makefun-app.ts';
 
 // The bounty's dossier caps, factored into one named constant: the text
-// cap shapes the dossier's bytes, the rest refuse oversize input exactly
-// where the scorer would.
+// budget shapes the dossier's bytes; the rest only refuse an entry that
+// grows past them, exactly as the scorer's own gate would.
 const DOSSIER_CAPS = {
   text_max_bytes: 163840,
   screenshots: { max: 4, max_bytes: 262144 },
@@ -18,13 +21,10 @@ const DOSSIER_CAPS = {
   app_path_max_bytes: 1000,
 };
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-const root = new URL('.', import.meta.url).pathname;
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-rmSync(outDir, { recursive: true, force: true });
-mkdirSync(outDir, { recursive: true });
-cpSync(`${root}app`, `${outDir}/app`, { recursive: true });
-cpSync(`${root}screenshots`, `${outDir}/screenshots`, { recursive: true });
-writeFileSync(`${outDir}/dossier.json`, buildDossier(outDir, DOSSIER_CAPS));
-
-console.log(`handed in the app: ${outDir}/app, ${outDir}/screenshots, ${outDir}/dossier.json`);
+rmSync(outputDir, { recursive: true, force: true });
+mkdirSync(outputDir, { recursive: true });
+cpSync('app', join(outputDir, 'app'), { recursive: true });
+cpSync('screenshots', join(outputDir, 'screenshots'), { recursive: true });
+writeFileSync(join(outputDir, 'dossier.json'), buildDossier(outputDir, DOSSIER_CAPS));

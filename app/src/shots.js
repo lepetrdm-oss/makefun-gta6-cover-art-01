@@ -1,42 +1,37 @@
-// Sunset Cover Studio — shots.js
-// Deterministic screenshot hooks. The page reads ?shot=cover|editor plus
-// optional params (preset, layout, grade, size, title, subtitle, photos,
-// titlepos, tilt) so a headless browser can reproduce an exact scene:
-//   ?shot=cover&preset=keyart
-//   ?shot=editor&preset=neonportrait
-// main.js applies the params before its first render and sets
-// window.__shotReady once the scene is fully painted.
+// Sunset Cover Studio — deterministic screenshot scenes. With ?shot=cover or
+// ?shot=editor in the URL the editor applies the scene named by the query
+// (a Look preset, plus optional layout/grade/size/title/subtitle/photos
+// overrides), waits for the photos and fonts, renders, and only then sets
+// window.__shotReady — so a headless browser can screenshot the exact same
+// pixels every time. shots.json at the repository root lists the scenes.
 
-const StudioShots = (() => {
-  const params = new URLSearchParams(window.location.search);
-  const mode = params.get('shot') || '';
+export function initShots(app) {
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('shot');
+  if (mode !== 'cover' && mode !== 'editor') return;
+  document.body.classList.add(mode === 'cover' ? 'shot-cover' : 'shot-editor');
 
-  function applyTo(state) {
-    if (!mode) return state;
-    const preset = params.get('preset');
-    if (preset && StudioData.looks[preset]) StudioState.applyLook(state, preset);
-    const layout = params.get('layout');
-    if (layout && StudioData.layouts[layout]) state.layout = layout;
-    const grade = params.get('grade');
-    if (grade && StudioData.grades[grade]) state.grade = grade;
-    const size = params.get('size');
-    if (size && StudioData.sizes[size]) state.size = size;
-    if (params.get('title') !== null) state.title = params.get('title');
-    if (params.get('subtitle') !== null) state.subtitle = params.get('subtitle');
-    if (params.get('titlepos') !== null) state.titlePos = params.get('titlepos');
-    if (params.get('tilt') !== null) state.tilt = Number(params.get('tilt')) || 0;
-    const photos = params.get('photos');
-    if (photos) {
-      photos.split(',').forEach((id, i) => {
-        if (state.panels[i] && StudioData.samples.some((s) => s.id === id)) {
-          state.panels[i] = StudioState.freshPanel(id);
-        }
+  const state = app.state;
+  if (params.get('preset')) app.applyLookById(params.get('preset'));
+  if (params.get('layout')) state.layout = params.get('layout');
+  if (params.get('grade')) state.grade = params.get('grade');
+  if (params.get('size')) state.size = params.get('size');
+  if (params.get('title') !== null) state.title = params.get('title');
+  if (params.get('subtitle') !== null) state.subtitle = params.get('subtitle');
+  if (params.get('photos')) {
+    params
+      .get('photos')
+      .split(',')
+      .forEach((id, i) => {
+        if (state.panels[i] && id) state.panels[i].photo = id.trim();
       });
-    }
-    return state;
   }
-
-  return { mode, applyTo };
-})();
-
-window.StudioShots = StudioShots;
+  if (mode === 'cover') app.setFullPreview(true);
+  app.refresh();
+  app.whenReady().then(() => {
+    app.refresh();
+    requestAnimationFrame(() => {
+      window.__shotReady = true;
+    });
+  });
+}
