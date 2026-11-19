@@ -1,11 +1,11 @@
-// Sunset Cover Studio — the editor: controls, panel cards, drag-to-pan,
-// photo uploads and PNG export. The preview canvas is painted at the export
-// size, so what you see is exactly what the PNG holds.
+// Sunset Cover Studio — the editor: one-click looks, controls, panel cards,
+// drag-to-pan, photo uploads and PNG export. The preview canvas is painted
+// at the export size, so what you see is exactly what the PNG holds.
 
-import { drawCover, panelRects } from './cover.js';
+import { drawCover, panelPolys, panelRects } from './cover.js';
 import {
-  GRADES, LAYOUTS, SAMPLES, SAMPLE_KEYS, SIZES,
-  defaultPanel, defaultState, fitPanelsToLayout, loadPanelPhotos,
+  GRADES, LAYOUTS, PRESETS, PRESET_KEYS, SAMPLES, SAMPLE_KEYS, SIZES,
+  applyPreset, defaultPanel, defaultState, fitPanelsToLayout, loadPanelPhotos,
 } from './state.js';
 import { applyShotParams, markShotReady, shotMode } from './shots.js';
 
@@ -55,6 +55,47 @@ function refreshSegmented() {
     state.grade = key;
     render();
   });
+}
+
+// One-click looks: a preset sets the layout, grade, size, caption and panel
+// photos at once; every control then stays free to change.
+function buildLooks() {
+  const list = document.getElementById('lookList');
+  list.replaceChildren();
+  for (const key of PRESET_KEYS) {
+    const preset = PRESETS[key];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'look-btn';
+    btn.title = preset.hint;
+    const name = document.createElement('span');
+    name.className = 'look-name';
+    name.textContent = preset.label;
+    const hint = document.createElement('span');
+    hint.className = 'look-hint';
+    hint.textContent = preset.hint;
+    btn.append(name, hint);
+    btn.addEventListener('click', () => {
+      applyPreset(state, key);
+      document.getElementById('sizeLabel').textContent = SIZES[state.size].label;
+      syncCaptionInputs();
+      buildPanelList();
+      render();
+      setStatus(`Look applied: ${preset.label}. Make it yours, then export.`);
+    });
+    list.appendChild(btn);
+  }
+}
+
+// Push the state's caption values into the caption controls (after a look
+// is applied or a screenshot scene is loaded).
+function syncCaptionInputs() {
+  document.getElementById('titleInput').value = state.title;
+  document.getElementById('subtitleInput').value = state.subtitle;
+  document.getElementById('titleSize').value = String(state.titleSize);
+  document.getElementById('titlePos').value = state.titlePos;
+  document.getElementById('tiltRange').value = String(state.tilt);
+  document.getElementById('outlineCheck').checked = state.outline;
 }
 
 function photoThumbButton(sampleKey, panelIndex, active) {
@@ -193,14 +234,21 @@ async function render() {
   }
   drawCover(ctx, state, photos, size.w, size.h);
   // Selection outline: preview only, never part of the exported PNG, and
-  // never on the cover-only shot, where the cover must stand alone.
-  const rect = panelRects(state, size.w, size.h)[state.selected];
-  if (rect && !document.body.classList.contains('shot-cover')) {
+  // never on the cover-only shot, where the cover must stand alone. It
+  // follows the panel's true outline, angled panels included.
+  const poly = panelPolys(state, size.w, size.h)[state.selected];
+  if (poly && !document.body.classList.contains('shot-cover')) {
     ctx.save();
     ctx.strokeStyle = '#ff2d78';
     ctx.lineWidth = Math.max(3, size.w * 0.004);
     ctx.setLineDash([Math.max(8, size.w * 0.012), Math.max(6, size.w * 0.008)]);
-    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.beginPath();
+    poly.forEach(([x, y], i) => {
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
     ctx.restore();
   }
   refreshSegmented();
@@ -283,12 +331,7 @@ function wireCaptionControls() {
   const tiltRange = document.getElementById('tiltRange');
   const outlineCheck = document.getElementById('outlineCheck');
 
-  titleInput.value = state.title;
-  subtitleInput.value = state.subtitle;
-  titleSize.value = String(state.titleSize);
-  titlePos.value = state.titlePos;
-  tiltRange.value = String(state.tilt);
-  outlineCheck.checked = state.outline;
+  syncCaptionInputs();
 
   titleInput.addEventListener('input', () => { state.title = titleInput.value; render(); });
   subtitleInput.addEventListener('input', () => { state.subtitle = subtitleInput.value; render(); });
@@ -304,6 +347,7 @@ async function init() {
   if (mode === 'cover') document.body.classList.add('shot-cover');
   if (mode) applyShotParams(state, new URLSearchParams(location.search));
   document.getElementById('sizeLabel').textContent = SIZES[state.size].label;
+  buildLooks();
   wireCaptionControls();
   buildPanelList();
   try {

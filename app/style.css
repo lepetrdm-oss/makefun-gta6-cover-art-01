@@ -102,8 +102,8 @@ button { font: inherit; cursor: pointer; }
 #controls {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 16px;
+  gap: 20px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
@@ -119,6 +119,36 @@ button { font: inherit; cursor: pointer; }
   color: var(--accent-2);
 }
 .hint { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* One-click looks: wide gradient-edged buttons, name over hint. */
+.looks { display: flex; flex-direction: column; gap: 8px; }
+.look-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: linear-gradient(120deg, rgba(255, 45, 120, 0.20), rgba(255, 154, 61, 0.12));
+  color: var(--text);
+  text-align: left;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.look-btn:hover { filter: brightness(1.18); transform: translateY(-1px); }
+.look-btn:active { transform: translateY(0); }
+.look-name {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.look-hint { color: var(--muted); font-size: 12px; }
+
+button:focus-visible, input:focus-visible, select:focus-visible, .thumb:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
 
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button {

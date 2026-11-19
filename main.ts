@@ -4,6 +4,10 @@
 // file into the output directory, then writes /output/dossier.json with the
 // kit's vendored library, which is the summary the judge reads.
 //
+// Version 2 of the studio: slanted panel layouts and a retro striped sun in
+// the renderer, two new sample photos, and one-click looks. The hand-in is
+// unchanged — same app/, same screenshots/, same dossier.
+//
 // Run it locally with MAKEFUN_OUTPUT_DIR standing in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 // Serve the app itself with `node serve.ts`, then open http://localhost:8080.
@@ -35,13 +39,15 @@ if (existsSync(join(here, 'screenshots'))) {
 // app files in all; or a path under app/ over 1000 bytes. app/ shares the
 // platform's own /output cap (1000 entries, 64 MiB) with screenshots/ and
 // dossier.json, so the caps below leave it room.
+const DOSSIER_CAPS = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  app_max_files: 993,
+  app_max_bytes: 50331648,
+  app_path_max_bytes: 1000,
+};
+
 writeFileSync(
   join(out, 'dossier.json'),
-  buildDossier(out, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    app_max_files: 993,
-    app_max_bytes: 50331648,
-    app_path_max_bytes: 1000,
-  }),
+  buildDossier(out, DOSSIER_CAPS),
 );
