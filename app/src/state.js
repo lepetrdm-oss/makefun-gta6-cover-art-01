@@ -1,286 +1,161 @@
-// Sunset Cover Studio — state: layouts, grades, sizes, one-click looks and
-// the cover's panel data. No network, no storage: every value lives in this
-// module's state object.
+// Sunset Cover Studio — state.js
+// The app's data: sample photos, post sizes, panel layouts, colour grades,
+// one-click Looks presets and the default editor state. Plain data and two
+// small helpers; the render engine lives in cover.js, the UI in main.js.
 
-export const SIZES = {
-  '1080x1080': { label: 'Square · 1080 × 1080', w: 1080, h: 1080 },
-  '1080x1350': { label: 'Portrait · 1080 × 1350', w: 1080, h: 1350 },
-  '1920x1080': { label: 'Wide · 1920 × 1080', w: 1920, h: 1080 },
+const StudioData = {
+  samples: [
+    { id: 'boulevard', src: 'samples/boulevard.jpg', label: 'Boulevard' },
+    { id: 'pier', src: 'samples/pier.jpg', label: 'Pier' },
+    { id: 'neon-street', src: 'samples/neon-street.jpg', label: 'Neon street' },
+    { id: 'convertible', src: 'samples/convertible.jpg', label: 'Convertible' },
+    { id: 'lifeguard', src: 'samples/lifeguard.jpg', label: 'Lifeguard tower' },
+  ],
+
+  sizes: {
+    '1920x1080': { label: '1920 × 1080', w: 1920, h: 1080 },
+    '1080x1350': { label: '1080 × 1350', w: 1080, h: 1350 },
+    '1080x1080': { label: '1080 × 1080', w: 1080, h: 1080 },
+  },
+
+  layouts: {
+    one: { label: 'One photo', panels: 1 },
+    hero: { label: 'Hero + two', panels: 3 },
+    trio: { label: 'Three panels', panels: 3 },
+    slant: { label: 'Slanted trio', panels: 3 },
+    grid: { label: 'Four panels', panels: 4 },
+  },
+
+  grades: {
+    vice: {
+      label: 'Vice Sunset',
+      wash: ['rgba(255, 93, 98, 0.30)', 'rgba(255, 166, 66, 0.12)', 'rgba(58, 10, 92, 0.34)'],
+      sun: 'striped',
+      sunTop: '#ffe259',
+      sunBottom: '#ff7518',
+      accent: '#ff2e88',
+      titleFill: ['#fff7e6', '#ffb3c8'],
+      edge: 'rgba(255, 240, 220, 0.85)',
+      photoFilter: 'saturate(1.12) contrast(1.06)',
+    },
+    neon: {
+      label: 'Neon Nights',
+      wash: ['rgba(8, 10, 60, 0.34)', 'rgba(120, 0, 120, 0.16)', 'rgba(2, 6, 30, 0.42)'],
+      sun: 'rings',
+      sunTop: '#aefcff',
+      sunBottom: '#ff2e88',
+      accent: '#22e6ff',
+      titleFill: ['#eaffff', '#7df9ff'],
+      edge: 'rgba(140, 240, 255, 0.80)',
+      photoFilter: 'saturate(1.18) contrast(1.10) brightness(0.98)',
+    },
+    gold: {
+      label: 'Golden Hour',
+      wash: ['rgba(255, 170, 40, 0.26)', 'rgba(255, 120, 60, 0.10)', 'rgba(70, 30, 10, 0.30)'],
+      sun: 'striped',
+      sunTop: '#fff3b0',
+      sunBottom: '#ff9f1c',
+      accent: '#ff9f1c',
+      titleFill: ['#fffbe8', '#ffd166'],
+      edge: 'rgba(255, 244, 200, 0.85)',
+      photoFilter: 'saturate(1.08) contrast(1.04) brightness(1.03)',
+    },
+    noir: {
+      label: 'Noir',
+      wash: ['rgba(20, 20, 24, 0.30)', 'rgba(0, 0, 0, 0.12)', 'rgba(0, 0, 0, 0.44)'],
+      sun: 'none',
+      sunTop: '#ffffff',
+      sunBottom: '#9a9a9a',
+      accent: '#e8e8e8',
+      titleFill: ['#ffffff', '#bdbdbd'],
+      edge: 'rgba(240, 240, 240, 0.75)',
+      photoFilter: 'grayscale(0.88) contrast(1.14)',
+    },
+  },
+
+  looks: {
+    keyart: {
+      label: 'Key Art',
+      layout: 'slant',
+      grade: 'vice',
+      size: '1920x1080',
+      photos: ['boulevard', 'convertible', 'neon-street', 'pier'],
+      title: 'Sunset Heist',
+      subtitle: 'Sunset Coast · Summer',
+      titlePos: 'bottom',
+      tilt: -2,
+    },
+    neonportrait: {
+      label: 'Neon Portrait',
+      layout: 'trio',
+      grade: 'neon',
+      size: '1080x1350',
+      photos: ['boulevard', 'neon-street', 'lifeguard', 'convertible'],
+      title: 'Boulevard Queen',
+      subtitle: 'Neon Nights · Leonida',
+      titlePos: 'bottom',
+      tilt: -2,
+    },
+    goldengrid: {
+      label: 'Golden Grid',
+      layout: 'grid',
+      grade: 'gold',
+      size: '1080x1080',
+      photos: ['pier', 'convertible', 'boulevard', 'lifeguard'],
+      title: 'Neon Nights',
+      subtitle: 'Golden Hour · Vice Shores',
+      titlePos: 'bottom',
+      tilt: -2,
+    },
+  },
 };
 
-// A layout is either `panels` (axis-aligned rectangles as [x, y, w, h]
-// fractions, with a gutter drawn between them) or `polys` (one polygon per
-// panel as [x, y] fraction points, the fractions already holding the gap
-// between neighbours, so the dividers come out angled).
-export const LAYOUTS = {
-  hero: {
-    label: 'One photo',
-    hint: 'A single full-bleed photo',
-    panels: [[0, 0, 1, 1]],
-  },
-  duo: {
-    label: 'Hero + two',
-    hint: 'One big panel, two small',
-    panels: [
-      [0, 0, 0.62, 1],
-      [0.62, 0, 0.38, 0.5],
-      [0.62, 0.5, 0.38, 0.5],
-    ],
-  },
-  trio: {
-    label: 'Three panels',
-    hint: 'Three tall columns',
-    panels: [
-      [0, 0, 1 / 3, 1],
-      [1 / 3, 0, 1 / 3, 1],
-      [2 / 3, 0, 1 / 3, 1],
-    ],
-  },
-  slant: {
-    label: 'Slanted trio',
-    hint: 'Three columns, angled dividers',
-    polys: [
-      [[0, 0], [0.352, 0], [0.292, 1], [0, 1]],
-      [[0.37, 0], [0.698, 0], [0.638, 1], [0.31, 1]],
-      [[0.716, 0], [1, 0], [1, 1], [0.656, 1]],
-    ],
-  },
-  grid: {
-    label: 'Four panels',
-    hint: 'A two-by-two grid',
-    panels: [
-      [0, 0, 0.5, 0.5],
-      [0.5, 0, 0.5, 0.5],
-      [0, 0.5, 0.5, 0.5],
-      [0.5, 0.5, 0.5, 0.5],
-    ],
-  },
-};
-
-export function layoutPanelCount(layoutKey) {
-  const layout = LAYOUTS[layoutKey];
-  return (layout.polys || layout.panels).length;
+// One panel's crop state: which sample it shows (or a custom uploaded image
+// held by main.js), how far it is zoomed, and its focal point in 0..1.
+function freshPanel(sampleId) {
+  return { sample: sampleId, custom: null, zoom: 1, ox: 0.5, oy: 0.5 };
 }
 
-// Each grade carries its photo filter, a multi-stop sunset wash laid over
-// the panels, top and bottom tints, the sun it draws ('striped' is the
-// retro banded disc, 'ring' the neon rings, 'none' no sun), the title's
-// gradient colours and the accent the lettering and panel edges use.
-export const GRADES = {
-  vice: {
-    label: 'Vice Sunset',
-    hint: 'Pink-orange dusk',
-    photoFilter: 'saturate(1.4) contrast(1.1)',
-    wash: [
-      [0, 'rgba(43, 0, 84, 0.42)'],
-      [0.42, 'rgba(255, 45, 120, 0.16)'],
-      [0.72, 'rgba(255, 94, 98, 0.20)'],
-      [1, 'rgba(255, 154, 61, 0.34)'],
-    ],
-    topTint: 'rgba(255, 94, 98, 0.10)',
-    bottomTint: 'rgba(255, 45, 120, 0.30)',
-    sun: 'striped',
-    sunStops: ['#ffe259', '#ffa751', '#ff5e62', '#ff2d78'],
-    titleFill: '#ffffff',
-    titleFill2: '#ffc7dd',
-    titleStroke: '#20063a',
-    accent: '#ff2d78',
-    panelEdge: 'rgba(255, 255, 255, 0.85)',
-  },
-  neon: {
-    label: 'Neon Nights',
-    hint: 'Cyan and magenta glow',
-    photoFilter: 'saturate(1.55) contrast(1.16) brightness(0.94)',
-    wash: [
-      [0, 'rgba(2, 0, 48, 0.46)'],
-      [0.5, 'rgba(140, 0, 120, 0.18)'],
-      [1, 'rgba(0, 70, 110, 0.34)'],
-    ],
-    topTint: 'rgba(0, 229, 255, 0.10)',
-    bottomTint: 'rgba(255, 0, 128, 0.32)',
-    sun: 'ring',
-    sunStops: ['#aefcff', '#00e5ff', '#ff2d78'],
-    titleFill: '#ffffff',
-    titleFill2: '#bdefff',
-    titleStroke: '#0b1030',
-    accent: '#00e5ff',
-    panelEdge: 'rgba(0, 229, 255, 0.75)',
-  },
-  gold: {
-    label: 'Golden Hour',
-    hint: 'Warm amber light',
-    photoFilter: 'sepia(0.3) saturate(1.55) contrast(1.07)',
-    wash: [
-      [0, 'rgba(59, 20, 0, 0.40)'],
-      [0.5, 'rgba(255, 110, 0, 0.16)'],
-      [1, 'rgba(255, 176, 0, 0.32)'],
-    ],
-    topTint: 'rgba(255, 176, 0, 0.10)',
-    bottomTint: 'rgba(255, 110, 0, 0.28)',
-    sun: 'striped',
-    sunStops: ['#fff3b0', '#ffd166', '#ff9a3d', '#ff6b35'],
-    titleFill: '#fff8e7',
-    titleFill2: '#ffd166',
-    titleStroke: '#3a1c00',
-    accent: '#ffb000',
-    panelEdge: 'rgba(255, 248, 231, 0.85)',
-  },
-  noir: {
-    label: 'Noir',
-    hint: 'Black and white',
-    photoFilter: 'grayscale(1) contrast(1.28) brightness(0.96)',
-    wash: [
-      [0, 'rgba(0, 0, 0, 0.42)'],
-      [0.5, 'rgba(70, 70, 70, 0.14)'],
-      [1, 'rgba(0, 0, 0, 0.48)'],
-    ],
-    topTint: 'rgba(255, 255, 255, 0.05)',
-    bottomTint: 'rgba(0, 0, 0, 0.38)',
-    sun: 'none',
-    sunStops: ['#ffffff', '#bbbbbb'],
-    titleFill: '#ffffff',
-    titleFill2: '#cfcfcf',
-    titleStroke: '#000000',
-    accent: '#ffffff',
-    panelEdge: 'rgba(255, 255, 255, 0.9)',
-  },
-};
-
-// Sample photos shipped with the app. They were made with an image model
-// for this project and are free to use; a person's own photos are read
-// locally and never uploaded.
-export const SAMPLES = {
-  boulevard: { label: 'Boulevard', src: 'samples/boulevard.jpg' },
-  convertible: { label: 'Convertible', src: 'samples/convertible.jpg' },
-  'neon-street': { label: 'Neon Street', src: 'samples/neon-street.jpg' },
-  lifeguard: { label: 'Lifeguard Tower', src: 'samples/lifeguard.jpg' },
-  pier: { label: 'Pier', src: 'samples/pier.jpg' },
-};
-
-export const SAMPLE_KEYS = Object.keys(SAMPLES);
-
-// One-click looks: a curated layout, grade, size, caption and photo set, so
-// a first-time user gets a finished cover in a single click and can then
-// make it their own.
-export const PRESETS = {
-  keyart: {
-    label: 'Key Art',
-    hint: 'Slanted panels · Vice Sunset · wide',
-    layout: 'slant',
-    grade: 'vice',
-    size: '1920x1080',
-    title: 'Sunset Heist',
-    subtitle: 'Sunset Coast · Summer',
-    titlePos: 'bottom',
-    titleSize: 1.08,
-    tilt: -2,
-    photos: ['boulevard', 'convertible', 'neon-street'],
-  },
-  neonportrait: {
-    label: 'Neon Portrait',
-    hint: 'Three panels · Neon Nights · portrait',
-    layout: 'trio',
-    grade: 'neon',
-    size: '1080x1350',
-    title: 'Boulevard Queen',
-    subtitle: 'Ocean Drive · After Dark',
-    titlePos: 'bottom',
-    titleSize: 1,
-    tilt: -2,
-    photos: ['boulevard', 'neon-street', 'lifeguard'],
-  },
-  goldgrid: {
-    label: 'Golden Grid',
-    hint: 'Four panels · Golden Hour · square',
-    layout: 'grid',
-    grade: 'gold',
-    size: '1080x1080',
-    title: 'Neon Nights',
-    subtitle: 'Golden Hour · Vice Coast',
-    titlePos: 'bottom',
-    titleSize: 1,
-    tilt: -2,
-    photos: ['convertible', 'neon-street', 'boulevard', 'lifeguard'],
-  },
-};
-
-export const PRESET_KEYS = Object.keys(PRESETS);
-
-export function defaultPanel(photo) {
-  return { photo, zoom: 1, ox: 0, oy: 0 };
-}
-
-export function applyPreset(state, key) {
-  const preset = PRESETS[key];
-  if (!preset) return;
-  state.layout = preset.layout;
-  state.grade = preset.grade;
-  state.size = preset.size;
-  state.title = preset.title;
-  state.subtitle = preset.subtitle;
-  state.titlePos = preset.titlePos;
-  state.titleSize = preset.titleSize;
-  state.tilt = preset.tilt;
-  state.outline = true;
-  state.panels = preset.photos.map((photo) => defaultPanel(photo));
-  state.selected = 0;
-}
-
-export function defaultState() {
+// The editor state. The default is the Key Art look, so the first thing a
+// visitor sees is the strongest composition the app makes.
+function defaultState() {
   const state = {
-    size: '1920x1080',
     layout: 'slant',
     grade: 'vice',
+    size: '1920x1080',
     title: 'Sunset Heist',
     subtitle: 'Sunset Coast · Summer',
-    titleSize: 1.08,
+    titleSize: 100,
     titlePos: 'bottom',
     tilt: -2,
     outline: true,
-    panels: [
-      defaultPanel('boulevard'),
-      defaultPanel('convertible'),
-      defaultPanel('neon-street'),
-    ],
     selected: 0,
+    panels: [],
   };
+  applyLook(state, 'keyart');
   return state;
 }
 
-// Fit the panel list to a layout: keep the panels that still exist, fill new
-// ones with the sample photos in turn.
-export function fitPanelsToLayout(state) {
-  const count = layoutPanelCount(state.layout);
-  const next = [];
-  for (let i = 0; i < count; i += 1) {
-    if (state.panels[i]) {
-      next.push(state.panels[i]);
-    } else {
-      next.push(defaultPanel(SAMPLE_KEYS[i % SAMPLE_KEYS.length]));
-    }
-  }
-  state.panels = next;
-  if (state.selected >= count) state.selected = 0;
+// Copy a Looks preset into the state, resetting every panel's crop.
+function applyLook(state, lookId) {
+  const look = StudioData.looks[lookId];
+  if (!look) return state;
+  state.layout = look.layout;
+  state.grade = look.grade;
+  state.size = look.size;
+  state.title = look.title;
+  state.subtitle = look.subtitle;
+  state.titlePos = look.titlePos;
+  state.tilt = look.tilt;
+  state.selected = 0;
+  state.panels = [0, 1, 2, 3].map((i) => freshPanel(look.photos[i % look.photos.length]));
+  return state;
 }
 
-// Photos are loaded once and cached by source. A sample key resolves to its
-// shipped file; anything else is treated as a data URL from an upload.
-const photoCache = new Map();
-
-export function loadPhoto(photo) {
-  const src = SAMPLES[photo] ? SAMPLES[photo].src : photo;
-  if (!photoCache.has(src)) {
-    const pending = new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`could not load photo ${src}`));
-      img.src = src;
-    });
-    photoCache.set(src, pending);
-  }
-  return photoCache.get(src);
+// How many panels the current layout draws.
+function layoutPanelCount(state) {
+  return StudioData.layouts[state.layout].panels;
 }
 
-export function loadPanelPhotos(state) {
-  return Promise.all(state.panels.map((panel) => loadPhoto(panel.photo)));
-}
+window.StudioData = StudioData;
+window.StudioState = { freshPanel, defaultState, applyLook, layoutPanelCount };

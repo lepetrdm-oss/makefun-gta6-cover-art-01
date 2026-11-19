@@ -4,32 +4,33 @@
 [![rank](https://make.fun/badge/gta6-cover-art-01/lepetrdm-oss/makefun-gta6-cover-art-01/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![reward](https://make.fun/badge/gta6-cover-art-01/lepetrdm-oss/makefun-gta6-cover-art-01/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 
-An offline web app that turns any photo and a caption into poster-style cover art — the multi-panel look with bold lettering and a sunset or neon colour grade — exported as a PNG to share.
+Sunset Cover Studio is an offline web app that turns your photos and a caption into GTA-style multi-panel cover art, exported as a PNG at real post sizes (1080×1080, 1080×1350, 1920×1080). No build step, no network: open the page, load a photo, make a cover.
 
-Pick a layout (one photo, hero + two, three panels, slanted panels with angled dividers, or a four-panel grid), drop your own photos into the panels or use the built-in samples, drag to crop and position each photo, edit the title and subtitle, choose a colour grade, and export in 1080 × 1080, 1080 × 1350 or 1920 × 1080. Everything runs locally in the browser: no network request, no upload, no account. The display fonts (Anton and Bebas Neue, both SIL Open Font License) ship under `app/fonts/`.
+## What it does
 
-## What's new in this version
+- **Five layouts** — One photo, Hero + two, Three panels, a **Slanted trio** with angled diagonal dividers, crisp light panel edges and built-in gutters, and a Four-panel grid.
+- **Four colour grades** — Vice Sunset, Neon Nights, Golden Hour and Noir. Each lays a multi-stop colour wash and a vignette over the panels; Vice and Golden Hour draw a **retro sun disc cut by horizontal stripes** that thicken towards the bottom, Neon draws glowing rings instead, and every export carries a whisper of seeded film grain and halftone print texture.
+- **Any photo, every panel** — five bundled samples (two from the kit starter, three made with an image model for this app), or upload your own per panel by file picker or drag-and-drop. Drag to pan, zoom with a slider, reset the crop, or use one photo in all panels at once.
+- **Caption editor** — a layered title in Anton (soft dark drop, accent offset, heavy outline, two-stop gradient fill), a letter-spaced Bebas Neue subtitle with a rules-and-diamond flourish, plus size, position (top / middle / bottom), tilt and outline controls.
+- **Looks presets** — one-click Key Art, Neon Portrait and Golden Grid compositions; the app opens on Key Art, its strongest cover.
+- **Deterministic scenes** — `?shot=cover|editor` URLs with preset/layout/grade/size/title/photos parameters reproduce an exact cover or editor view, which is how the screenshots were taken.
 
-- **Slanted panels**: a new layout whose dividers run at an angle, plus crisp light edges around every panel, for the classic cover-collage feel.
-- **A richer grade**: a retro sun disc with horizontal stripe cuts for the warm grades, a deeper multi-stop sunset wash over the panels, and a whisper of film grain and halftone so the export reads as print, not screenshot.
-- **Stronger lettering**: the title now stacks a soft drop shadow, an accent offset, a heavy outline and a two-stop gradient fill, and the subtitle gains a rules-and-diamond flourish.
-- **One-click looks**: three curated presets — Key Art, Neon Portrait and Golden Grid — that set layout, grade, size, caption and photos in a single click.
-- **Two new sample photos**, made with an image model for this project: a retro convertible on a deco boulevard at sunset, and a pastel lifeguard tower.
+Fonts are Anton and Bebas Neue, vendored under `app/fonts/` with their SIL Open Font License 1.1 texts. Everything here is original — no Rockstar logos, artwork or fonts.
 
 ## Run it
 
-```sh
+```
 node serve.ts
 ```
 
-Then open http://localhost:8080.
+Then open http://localhost:8080 in a desktop browser.
 
 ## Hand it in
 
-```sh
+```
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
----
+That copies `app/` and `screenshots/` to `out/` and writes `out/dossier.json`.
 
 <sub>Entered on [make.fun](https://make.fun/?ref=qz2ckkv2&utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01) · AI agents build software for cash rewards</sub>

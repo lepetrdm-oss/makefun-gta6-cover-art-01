@@ -4,76 +4,69 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sunset Cover Studio — GTA-style cover art maker</title>
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header id="topbar">
+<header class="masthead">
   <div class="brand">
-    <span class="brand-mark" aria-hidden="true">☀</span>
-    <div>
-      <h1>Sunset Cover Studio</h1>
-      <p>Turn any photo into poster-style cover art — slanted panels, a retro striped sun, one-click looks. Fully offline.</p>
-    </div>
-  </div>
-  <div class="top-actions">
-    <span id="sizeLabel" class="size-label">Wide · 1920 × 1080</span>
-    <button id="exportBtn" type="button">Export PNG</button>
+    <h1>Sunset Cover Studio</h1>
+    <p class="tagline">Turn any photo into multi-panel, GTA-style cover art — slanted panels, a striped retro sun, neon grades, one-click looks, PNG export. Fully offline.</p>
   </div>
 </header>
-<main id="studio">
-  <section id="previewPane">
-    <canvas id="preview" width="1920" height="1080" aria-label="Cover preview"></canvas>
-    <p id="previewHint">Click a panel to select it · drag inside a panel to move its photo · drop a photo file onto a panel</p>
+<main class="wrap">
+  <section class="stage-wrap">
+    <canvas id="preview" width="1920" height="1080"></canvas>
+    <p class="hint">Drag a panel to reposition its photo. Pick a panel card to change its photo, zoom and crop.</p>
   </section>
-  <aside id="controls" aria-label="Cover controls">
-    <section class="control-group">
+  <aside class="controls">
+    <div class="group">
       <h2>Looks — one click</h2>
-      <div id="lookList" class="looks"></div>
-      <p class="hint">A look sets the layout, grade, size, caption and photos at once. Start from one, then make it yours.</p>
-    </section>
-    <section class="control-group">
+      <div id="looks" class="seg-row"></div>
+    </div>
+    <div class="group">
       <h2>Layout</h2>
-      <div id="layoutSeg" class="seg" role="group" aria-label="Panel layout"></div>
-    </section>
-    <section class="control-group">
+      <div id="layouts" class="seg-row"></div>
+    </div>
+    <div class="group">
       <h2>Post size</h2>
-      <div id="sizeSeg" class="seg" role="group" aria-label="Export size"></div>
-    </section>
-    <section class="control-group">
+      <div id="sizes" class="seg-row"></div>
+    </div>
+    <div class="group">
       <h2>Colour grade</h2>
-      <div id="gradeSeg" class="seg" role="group" aria-label="Colour grade"></div>
-    </section>
-    <section class="control-group">
+      <div id="grades" class="seg-row"></div>
+    </div>
+    <div class="group">
       <h2>Caption</h2>
       <label class="field">Title
-        <input id="titleInput" type="text" maxlength="48" value="Sunset Heist">
+        <input id="title-input" type="text" maxlength="40" value="Sunset Heist">
       </label>
       <label class="field">Subtitle
-        <input id="subtitleInput" type="text" maxlength="48" value="Sunset Coast · Summer">
+        <input id="subtitle-input" type="text" maxlength="60" value="Sunset Coast · Summer">
       </label>
-      <label class="slider-row">Title size
-        <input id="titleSize" type="range" min="0.6" max="1.6" step="0.05" value="1">
+      <label class="field">Title size
+        <input id="title-size" type="range" min="60" max="140" step="1" value="100">
       </label>
-      <label class="field">Title position
-        <select id="titlePos">
-          <option value="bottom" selected>Bottom</option>
-          <option value="middle">Middle</option>
-          <option value="top">Top</option>
-        </select>
+      <div class="field">Title position
+        <div id="title-pos" class="seg-row"></div>
+      </div>
+      <label class="field">Tilt
+        <input id="tilt" type="range" min="-8" max="8" step="0.5" value="-2">
       </label>
-      <label class="slider-row">Tilt
-        <input id="tiltRange" type="range" min="-8" max="8" step="1" value="-2">
+      <label class="check">
+        <input id="outline-toggle" type="checkbox" checked> Title outline
       </label>
-      <label class="check-row"><input id="outlineCheck" type="checkbox" checked> Bold outline</label>
-    </section>
-    <section class="control-group">
+    </div>
+    <div class="group">
       <h2>Panels</h2>
-      <p class="hint">Pick a sample photo or upload your own for each panel.</p>
-      <div id="panelList"></div>
-    </section>
-    <p id="status" role="status"></p>
+      <div id="panels"></div>
+    </div>
+    <button id="export-btn" type="button">Export PNG</button>
+    <p class="fineprint">Fonts: Anton and Bebas Neue, SIL Open Font License 1.1 (see app/fonts/). Sample photos are model-made and free to use. No Rockstar artwork, logos or fonts.</p>
   </aside>
 </main>
-<script type="module" src="./src/main.js"></script>
+<script src="src/state.js"></script>
+<script src="src/cover.js"></script>
+<script src="src/shots.js"></script>
+<script src="src/main.js"></script>
 </body>
 </html>
