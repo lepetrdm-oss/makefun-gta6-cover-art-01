@@ -1,375 +1,353 @@
-// Sunset Cover Studio — the render engine. drawCover paints one cover from
-// the editor state onto any 2D context: polygon panels with angled dividers,
-// a cover-fit photo per panel, the grade's multi-stop wash, a striped retro
-// sun or neon rings in the sky, a whisper of seeded grain and halftone, and
-// the layered caption. It is pure drawing — same state in, same pixels out.
+// Sunset Cover Studio — the cover renderer. Pure canvas work: given a
+// 2d context, an output size, the shared state and the loaded panel
+// images, it paints the finished cover. Every random-looking element
+// comes from a seeded PRNG, so the same state always paints the same
+// pixels — exports are byte-identical between runs.
 
-import { GRADES, panelCount, mulberry32 } from './state.js';
+import { SAMPLES } from './state.js';
 
-// ---------------------------------------------------------------- geometry
+// Deterministic PRNG (mulberry32). Render paths never call Math.random.
+export function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-function shrinkToCentroid(poly, px) {
-  let cx = 0;
-  let cy = 0;
-  for (const [x, y] of poly) {
-    cx += x;
-    cy += y;
+function rect(x, y, w, h) {
+  return {
+    points: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]],
+    box: { x: x, y: y, w: w, h: h },
+  };
+}
+
+function poly(fracs, W, H) {
+  const points = fracs.map(function (p) { return [p[0] * W, p[1] * H]; });
+  const xs = points.map(function (p) { return p[0]; });
+  const ys = points.map(function (p) { return p[1]; });
+  const x0 = Math.min.apply(null, xs);
+  const y0 = Math.min.apply(null, ys);
+  return {
+    points: points,
+    box: { x: x0, y: y0, w: Math.max.apply(null, xs) - x0, h: Math.max.apply(null, ys) - y0 },
+  };
+}
+
+// Panel shapes for each layout. The slanted trio uses diagonal polygon
+// dividers; the dark page colour shows through the gaps as gutters.
+export function panelShapes(layout, W, H) {
+  const g = Math.max(6, W * 0.008);
+  if (layout === 'one') {
+    return [rect(0, 0, W, H)];
   }
-  cx /= poly.length;
-  cy /= poly.length;
-  return poly.map(([x, y]) => {
-    const dx = x - cx;
-    const dy = y - cy;
-    const d = Math.hypot(dx, dy) || 1;
-    const pull = Math.min(px, d * 0.4);
-    return [x - (dx / d) * pull, y - (dy / d) * pull];
+  if (layout === 'hero') {
+    const heroW = W * 0.615;
+    const sideX = heroW + g;
+    const sideW = W - sideX;
+    const halfH = (H - g) / 2;
+    return [
+      rect(0, 0, heroW, H),
+      rect(sideX, 0, sideW, halfH),
+      rect(sideX, halfH + g, sideW, halfH),
+    ];
+  }
+  if (layout === 'trio') {
+    const colW = (W - 2 * g) / 3;
+    return [0, 1, 2].map(function (i) { return rect(i * (colW + g), 0, colW, H); });
+  }
+  if (layout === 'slanted') {
+    return [
+      poly([[0, 0], [0.355, 0], [0.295, 1], [0, 1]], W, H),
+      poly([[0.378, 0], [0.668, 0], [0.608, 1], [0.318, 1]], W, H),
+      poly([[0.691, 0], [1, 0], [1, 1], [0.631, 1]], W, H),
+    ];
+  }
+  // grid: four panels, two by two.
+  const cellW = (W - g) / 2;
+  const cellH = (H - g) / 2;
+  return [
+    rect(0, 0, cellW, cellH),
+    rect(cellW + g, 0, cellW, cellH),
+    rect(0, cellH + g, cellW, cellH),
+    rect(cellW + g, cellH + g, cellW, cellH),
+  ];
+}
+
+const WASHES = {
+  vice: {
+    stops: [[0, 'rgba(255,154,61,0.85)'], [0.45, 'rgba(255,46,136,0.72)'], [1, 'rgba(46,6,84,0.88)']],
+    tint: 'rgba(255,84,44,0.10)', accent: '#ff2e88', titleA: '#ffffff', titleB: '#ffd23d',
+  },
+  neon: {
+    stops: [[0, 'rgba(0,229,255,0.78)'], [0.5, 'rgba(123,43,255,0.72)'], [1, 'rgba(255,46,166,0.85)']],
+    tint: 'rgba(16,32,140,0.12)', accent: '#00e5ff', titleA: '#ffffff', titleB: '#7df9ff',
+  },
+  golden: {
+    stops: [[0, 'rgba(255,210,61,0.85)'], [0.55, 'rgba(255,138,61,0.72)'], [1, 'rgba(140,32,74,0.88)']],
+    tint: 'rgba(255,150,50,0.10)', accent: '#ff8a3d', titleA: '#ffffff', titleB: '#ffe259',
+  },
+  noir: {
+    stops: [[0, 'rgba(245,245,245,0.68)'], [0.5, 'rgba(120,120,120,0.62)'], [1, 'rgba(8,8,8,0.88)']],
+    tint: 'rgba(0,0,0,0.16)', accent: '#e8e8e8', titleA: '#ffffff', titleB: '#bdbdbd',
+  },
+};
+
+export function loadImage(src) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    img.onload = function () { resolve(img); };
+    img.onerror = function () { reject(new Error('could not load ' + src)); };
+    img.src = src;
   });
 }
 
-// The panel polygons of a layout on a w × h canvas. The slanted trio leans
-// its dividers — the top of each divider sits right of its foot — which is
-// what gives the cover its key-art energy. Multi-panel layouts are pulled a
-// few pixels toward each panel's centroid, opening the crisp gutters the
-// edge strokes then light up.
-export function panelPolys(layoutId, w, h) {
-  let polys;
-  if (layoutId === 'hero') {
-    const x = 0.58 * w;
-    const y = 0.5 * h;
-    polys = [
-      [[0, 0], [x, 0], [x, h], [0, h]],
-      [[x, 0], [w, 0], [w, y], [x, y]],
-      [[x, y], [w, y], [w, h], [x, h]],
-    ];
-  } else if (layoutId === 'trio') {
-    const a = w / 3;
-    polys = [0, 1, 2].map((i) => [[i * a, 0], [(i + 1) * a, 0], [(i + 1) * a, h], [i * a, h]]);
-  } else if (layoutId === 'slant') {
-    const t1 = 0.37 * w;
-    const b1 = 0.3 * w;
-    const t2 = 0.69 * w;
-    const b2 = 0.62 * w;
-    polys = [
-      [[0, 0], [t1, 0], [b1, h], [0, h]],
-      [[t1, 0], [t2, 0], [b2, h], [b1, h]],
-      [[t2, 0], [w, 0], [w, h], [b2, h]],
-    ];
-  } else if (layoutId === 'grid') {
-    const x = 0.5 * w;
-    const y = 0.5 * h;
-    polys = [
-      [[0, 0], [x, 0], [x, y], [0, y]],
-      [[x, 0], [w, 0], [w, y], [x, y]],
-      [[0, y], [x, y], [x, h], [0, h]],
-      [[x, y], [w, y], [w, h], [x, h]],
-    ];
-  } else {
-    polys = [[[0, 0], [w, 0], [w, h], [0, h]]];
+// Loads (and caches) one drawable image per panel, honouring uploads.
+export async function loadPanelImages(st) {
+  const cache = new Map();
+  const out = [];
+  for (const panel of st.panels) {
+    let src = panel.upload;
+    if (!src) {
+      const found = SAMPLES.find(function (s) { return s.id === panel.sample; });
+      src = found ? found.src : SAMPLES[0].src;
+    }
+    if (!cache.has(src)) cache.set(src, await loadImage(src));
+    out.push(cache.get(src));
   }
-  if (polys.length === 1) return polys;
-  const gutter = Math.max(3, Math.min(w, h) * 0.006);
-  return polys.map((poly) => shrinkToCentroid(poly, gutter));
+  return out;
 }
 
-export function polyBBox(poly) {
-  const xs = poly.map((p) => p[0]);
-  const ys = poly.map((p) => p[1]);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
-
-export function pointInPoly(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
-function tracePoly(ctx, poly) {
+function tracePath(ctx, shape) {
   ctx.beginPath();
-  poly.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  shape.points.forEach(function (p, i) {
+    if (i === 0) ctx.moveTo(p[0], p[1]);
+    else ctx.lineTo(p[0], p[1]);
+  });
   ctx.closePath();
 }
 
-// ---------------------------------------------------------------- the photo
-
-function drawPanelPhoto(ctx, img, panel, poly) {
-  const box = polyBBox(poly);
+function drawPanelImage(ctx, img, shape, panel, grade) {
+  const box = shape.box;
+  const scale = Math.max(box.w / img.width, box.h / img.height) * panel.zoom;
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  const dx = box.x + (box.w - dw) / 2 + panel.panX * box.w;
+  const dy = box.y + (box.h - dh) / 2 + panel.panY * box.h;
   ctx.save();
-  tracePoly(ctx, poly);
+  tracePath(ctx, shape);
   ctx.clip();
-  if (img && img.complete && img.naturalWidth > 0) {
-    const scale = Math.max(box.w / img.naturalWidth, box.h / img.naturalHeight) * panel.zoom;
-    const dw = img.naturalWidth * scale;
-    const dh = img.naturalHeight * scale;
-    const rangeX = Math.max(0, (dw - box.w) / 2);
-    const rangeY = Math.max(0, (dh - box.h) / 2);
-    const dx = box.x + box.w / 2 - dw / 2 + panel.ox * rangeX;
-    const dy = box.y + box.h / 2 - dh / 2 + panel.oy * rangeY;
-    ctx.drawImage(img, dx, dy, dw, dh);
+  if (grade === 'noir') ctx.filter = 'grayscale(0.85) contrast(1.12)';
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+  // Crisp light edge stroke around every panel.
+  ctx.save();
+  tracePath(ctx, shape);
+  ctx.strokeStyle = 'rgba(255,242,220,0.92)';
+  ctx.lineWidth = Math.max(2, Math.min(ctx.canvas.width, ctx.canvas.height) * 0.0032);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function applyGrade(ctx, W, H, grade) {
+  const wash = WASHES[grade];
+  const grad = ctx.createLinearGradient(0, 0, W * 0.25, H);
+  for (const stop of wash.stops) grad.addColorStop(stop[0], stop[1]);
+  ctx.save();
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = wash.tint;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// A retro sun disc drawn as horizontal bands: the gaps between bands
+// widen towards the bottom, the classic synthwave sunset. Looks aim
+// it at a panel of open sky (state.sky), never over a face.
+function drawStripedSun(ctx, box, grade, fx, fy) {
+  const cx = box.x + box.w * fx;
+  const cy = box.y + box.h * fy;
+  const r = Math.min(box.w, box.h) * 0.27;
+  const grad = ctx.createLinearGradient(0, cy - r, 0, cy + r);
+  if (grade === 'golden') {
+    grad.addColorStop(0, '#ffe259');
+    grad.addColorStop(0.6, '#ffa751');
+    grad.addColorStop(1, '#ff7518');
   } else {
-    const grad = ctx.createLinearGradient(box.x, box.y, box.x + box.w, box.y + box.h);
-    grad.addColorStop(0, '#3b2d5c');
-    grad.addColorStop(1, '#131022');
-    ctx.fillStyle = grad;
-    ctx.fillRect(box.x, box.y, box.w, box.h);
+    grad.addColorStop(0, '#ffd23d');
+    grad.addColorStop(0.55, '#ff7b3d');
+    grad.addColorStop(1, '#ff2e88');
   }
-  ctx.restore();
-}
-
-// ---------------------------------------------------------------- sky marks
-
-// The retro sun: a gradient disc drawn on a scratch canvas, its lower half
-// cut by horizontal stripes that thicken as they descend, then composited
-// over the panels so the stripes reveal the art beneath.
-function drawStripedSun(ctx, w, h, grade) {
-  const r = Math.min(w, h) * 0.17;
-  const cx = w * 0.74;
-  const cy = h * 0.27;
-  const scratch = document.createElement('canvas');
-  scratch.width = Math.ceil(r * 2);
-  scratch.height = Math.ceil(r * 2);
-  const s = scratch.getContext('2d');
-  const grad = s.createLinearGradient(0, 0, 0, r * 2);
-  grade.sunStops.forEach((stop, i) => grad.addColorStop(i / (grade.sunStops.length - 1), stop));
-  s.fillStyle = grad;
-  s.beginPath();
-  s.arc(r, r, r, 0, Math.PI * 2);
-  s.fill();
-  s.globalCompositeOperation = 'destination-out';
-  let y = r * 1.04;
-  let band = r * 0.035;
-  let gap = r * 0.11;
-  while (y < r * 2) {
-    s.fillRect(0, y, r * 2, band);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = grad;
+  let y = cy - r;
+  let band = r * 0.36;
+  let gap = r * 0.015;
+  while (y < cy + r) {
+    ctx.fillRect(cx - r, y, r * 2, band);
     y += band + gap;
-    band *= 1.45;
-    gap *= 0.86;
+    band *= 0.8;
+    gap = Math.min(gap * 1.6, r * 0.14);
   }
-  ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.drawImage(scratch, cx - r, cy - r);
   ctx.restore();
 }
 
-function drawNeonRings(ctx, w, h, grade) {
-  const cx = w * 0.76;
-  const cy = h * 0.24;
-  const base = Math.min(w, h);
+// Glowing concentric rings for Neon Nights, in the sky panel's sky.
+function drawNeonRings(ctx, box, fx, fy) {
+  const cx = box.x + box.w * fx;
+  const cy = box.y + box.h * fy;
+  const base = Math.min(box.w, box.h);
+  const colors = ['#00e5ff', '#ff2ea6', '#7b2bff', '#00e5ff'];
   ctx.save();
-  grade.sunStops.forEach((stop, i) => {
+  for (let i = 0; i < 4; i++) {
     ctx.beginPath();
-    ctx.arc(cx, cy, base * (0.055 + i * 0.038), 0, Math.PI * 2);
-    ctx.strokeStyle = stop;
-    ctx.globalAlpha = 0.85 - i * 0.22;
-    ctx.lineWidth = Math.max(2, base * 0.006);
-    ctx.shadowColor = stop;
-    ctx.shadowBlur = base * 0.03;
+    ctx.arc(cx, cy, base * (0.085 + i * 0.047), 0, Math.PI * 2);
+    ctx.strokeStyle = colors[i];
+    ctx.lineWidth = Math.max(2, base * 0.009);
+    ctx.shadowColor = colors[i];
+    ctx.shadowBlur = 22;
     ctx.stroke();
-  });
+  }
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- texture
+function drawVignette(ctx, W, H) {
+  const rad = ctx.createRadialGradient(
+    W / 2, H / 2, Math.min(W, H) * 0.36,
+    W / 2, H / 2, Math.max(W, H) * 0.78
+  );
+  rad.addColorStop(0, 'rgba(8,0,18,0)');
+  rad.addColorStop(1, 'rgba(8,0,18,0.44)');
+  ctx.save();
+  ctx.fillStyle = rad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
 
-let grainTile = null;
-
-// A 256 × 256 tile of seeded noise, built once. Tiling it keeps the grain
-// identical on every render of every size — deterministic, no Math.random.
-function getGrainTile() {
-  if (grainTile) return grainTile;
+function drawGrain(ctx, W, H) {
+  const s = 180;
   const tile = document.createElement('canvas');
-  tile.width = 256;
-  tile.height = 256;
-  const t = tile.getContext('2d');
-  const data = t.createImageData(256, 256);
-  const rng = mulberry32(0x5eed);
+  tile.width = s;
+  tile.height = s;
+  const tctx = tile.getContext('2d');
+  const data = tctx.createImageData(s, s);
+  const rnd = mulberry32(0xc0ffee);
   for (let i = 0; i < data.data.length; i += 4) {
-    const v = Math.floor(rng() * 255);
+    const v = Math.floor(rnd() * 255);
     data.data[i] = v;
     data.data[i + 1] = v;
     data.data[i + 2] = v;
     data.data[i + 3] = 255;
   }
-  t.putImageData(data, 0, 0);
-  grainTile = tile;
-  return tile;
+  tctx.putImageData(data, 0, 0);
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.fillStyle = ctx.createPattern(tile, 'repeat');
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
 }
 
-function drawTexture(ctx, w, h) {
+function drawHalftone(ctx, W, H) {
+  const step = Math.max(10, Math.round(W / 90));
+  const rnd = mulberry32(0x5eed);
   ctx.save();
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.globalAlpha = 0.05;
-  const pattern = ctx.createPattern(getGrainTile(), 'repeat');
-  if (pattern) {
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, w, h);
-  }
-  ctx.restore();
-  // A fine halftone whisper: one seeded pass of tiny dots, denser toward the
-  // foot of the cover, like ink on a printed poster.
-  const rng = mulberry32(0xa11f);
-  const step = Math.max(6, w * 0.0045);
-  ctx.save();
-  ctx.fillStyle = '#ffffff';
-  for (let row = 0, y = step / 2; y < h; row++, y += step) {
-    for (let x = step / 2 + (row % 2) * (step / 2); x < w; x += step) {
-      const depth = 0.25 + 0.75 * (y / h);
-      ctx.globalAlpha = (0.015 + rng() * 0.03) * depth;
+  ctx.fillStyle = 'rgba(12,2,24,0.15)';
+  for (let y = step / 2; y < H; y += step) {
+    for (let x = step / 2; x < W; x += step) {
+      const r = (0.4 + rnd() * 0.6) * step * 0.16;
       ctx.beginPath();
-      ctx.arc(x, y, step * 0.14, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     }
   }
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- caption
-
-function fitFontPx(ctx, text, px, maxWidth, family) {
-  let size = px;
-  ctx.font = `400 ${size}px ${family}`;
-  const width = ctx.measureText(text).width;
-  if (width > maxWidth) size = Math.max(10, Math.floor(size * (maxWidth / width)));
-  ctx.font = `400 ${size}px ${family}`;
-  return size;
-}
-
-function drawCaption(ctx, w, h, state, grade) {
-  const title = (state.title || '').trim();
-  const subtitle = (state.subtitle || '').trim();
-  if (!title && !subtitle) return;
-  const bandY = state.titlePos === 'top' ? h * 0.15 : state.titlePos === 'middle' ? h * 0.52 : h * 0.845;
+// Layered display title: soft shadow, accent offset copy, heavy
+// outline, then a two-stop gradient fill — all in Anton. Below it the
+// Bebas Neue subtitle with a line-diamond-line flourish on each side.
+function drawCaptions(ctx, W, H, st) {
+  const wash = WASHES[st.grade];
+  const size = st.titleSize * H;
+  const y = st.titleY * H;
   ctx.save();
-  ctx.translate(w / 2, bandY);
-  ctx.rotate(((state.tilt || 0) * Math.PI) / 180);
+  ctx.translate(W / 2, y);
+  ctx.rotate((st.titleTilt * Math.PI) / 180);
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  let titlePx = 0;
-  if (title) {
-    titlePx = fitFontPx(ctx, title.toUpperCase(), h * 0.118 * (state.titleScale || 1), w * 0.92, 'Anton, sans-serif');
-    // Layered treatment: a soft dark drop, an accent offset copy, a heavy
-    // outline, then a two-stop gradient fill on top.
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-    ctx.shadowBlur = titlePx * 0.16;
-    ctx.shadowOffsetY = titlePx * 0.05;
-    ctx.fillStyle = '#14101c';
-    ctx.fillText(title.toUpperCase(), 0, 0);
-    ctx.restore();
-    ctx.fillStyle = grade.accent;
-    ctx.fillText(title.toUpperCase(), titlePx * 0.035, titlePx * 0.045);
-    if (state.outline) {
-      ctx.lineWidth = titlePx * 0.16;
-      ctx.strokeStyle = '#171224';
-      ctx.lineJoin = 'round';
-      ctx.strokeText(title.toUpperCase(), 0, 0);
-    }
-    const grad = ctx.createLinearGradient(0, -titlePx * 0.8, 0, titlePx * 0.15);
-    grad.addColorStop(0, grade.titleTop);
-    grad.addColorStop(1, grade.titleBottom);
-    ctx.fillStyle = grad;
-    ctx.fillText(title.toUpperCase(), 0, 0);
-  }
-  if (subtitle) {
-    const subPx = fitFontPx(ctx, subtitle.toUpperCase(), (titlePx || h * 0.1) * 0.3, w * 0.8, '"Bebas Neue", sans-serif');
-    const subY = titlePx * 0.52 + subPx;
-    try {
-      ctx.letterSpacing = `${Math.round(subPx * 0.32)}px`;
-    } catch {
-      // Older engines have no letterSpacing; the subtitle still reads fine.
-    }
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = subPx * 0.3;
-    ctx.shadowOffsetY = subPx * 0.08;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(subtitle.toUpperCase(), 0, subY);
-    ctx.restore();
-    try {
-      ctx.letterSpacing = '0px';
-    } catch {
-      // Nothing to reset where it was never set.
-    }
-    // The flourish: a rule, a diamond, a rule, in the grade's accent.
-    const fw = Math.min(w * 0.36, ctx.measureText(subtitle.toUpperCase()).width * 0.9);
-    const fy = subY + subPx * 0.62;
-    const half = fw / 2;
-    const diamond = subPx * 0.16;
-    ctx.save();
-    ctx.strokeStyle = grade.accent;
-    ctx.fillStyle = grade.accent;
-    ctx.lineWidth = Math.max(2, subPx * 0.07);
+  ctx.textBaseline = 'middle';
+  const title = st.title.toUpperCase();
+  ctx.font = size + 'px Anton, sans-serif';
+  ctx.fillStyle = 'rgba(16,2,28,0.55)';
+  ctx.fillText(title, size * 0.07, size * 0.09);
+  ctx.fillStyle = wash.accent;
+  ctx.fillText(title, -size * 0.045, -size * 0.045);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size * 0.17;
+  ctx.strokeStyle = '#170826';
+  ctx.strokeText(title, 0, 0);
+  const grad = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
+  grad.addColorStop(0, wash.titleA);
+  grad.addColorStop(1, wash.titleB);
+  ctx.fillStyle = grad;
+  ctx.fillText(title, 0, 0);
+
+  const sub = st.subtitle.toUpperCase();
+  const subSize = size * 0.3;
+  const subY = size * 0.82;
+  ctx.font = subSize + 'px "Bebas Neue", sans-serif';
+  try { ctx.letterSpacing = Math.round(subSize * 0.35) + 'px'; } catch (err) { /* older engines */ }
+  ctx.fillStyle = '#ffedcb';
+  ctx.fillText(sub, 0, subY);
+  const half = (ctx.measureText(sub).width + sub.length * subSize * 0.35) / 2;
+  try { ctx.letterSpacing = '0px'; } catch (err) { /* older engines */ }
+  const gap = subSize * 0.7;
+  const lineLen = subSize * 2.6;
+  ctx.strokeStyle = '#ffedcb';
+  ctx.lineWidth = Math.max(1.5, subSize * 0.07);
+  for (const dir of [-1, 1]) {
     ctx.beginPath();
-    ctx.moveTo(-half, fy);
-    ctx.lineTo(-diamond * 1.8, fy);
-    ctx.moveTo(diamond * 1.8, fy);
-    ctx.lineTo(half, fy);
+    ctx.moveTo(dir * (half + gap), subY);
+    ctx.lineTo(dir * (half + gap + lineLen), subY);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, fy - diamond);
-    ctx.lineTo(diamond, fy);
-    ctx.lineTo(0, fy + diamond);
-    ctx.lineTo(-diamond, fy);
-    ctx.closePath();
-    ctx.fill();
+    ctx.save();
+    ctx.translate(dir * (half + gap + lineLen + subSize * 0.55), subY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = wash.accent;
+    const d = subSize * 0.3;
+    ctx.fillRect(-d / 2, -d / 2, d, d);
     ctx.restore();
   }
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- the cover
-
-export function drawCover(ctx, w, h, state, images) {
-  const grade = GRADES[state.grade] || GRADES.vice;
-  const count = panelCount(state.layout);
-  const polys = panelPolys(state.layout, w, h);
-  ctx.fillStyle = '#0b0b10';
-  ctx.fillRect(0, 0, w, h);
-  for (let i = 0; i < count; i++) {
-    drawPanelPhoto(ctx, images[i], state.panels[i], polys[i]);
-  }
-  // The grade's multi-stop wash, then the sky mark above it.
-  const wash = ctx.createLinearGradient(0, 0, w * 0.25, h);
-  for (const [offset, color] of grade.wash) wash.addColorStop(offset, color);
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, w, h);
-  if (grade.sun === 'disc') drawStripedSun(ctx, w, h, grade);
-  if (grade.sun === 'rings') drawNeonRings(ctx, w, h, grade);
-  // Crisp light strokes along every panel edge.
+// Paints the whole cover onto ctx at W x H.
+export function drawCover(ctx, W, H, st, images) {
   ctx.save();
-  ctx.strokeStyle = grade.edge;
-  ctx.lineWidth = Math.max(2, Math.min(w, h) * 0.0035);
-  for (let i = 0; i < count; i++) {
-    tracePoly(ctx, polys[i]);
-    ctx.stroke();
+  ctx.fillStyle = '#150722';
+  ctx.fillRect(0, 0, W, H);
+  const shapes = panelShapes(st.layout, W, H);
+  shapes.forEach(function (shape, i) {
+    if (images[i]) drawPanelImage(ctx, images[i], shape, st.panels[i], st.grade);
+  });
+  applyGrade(ctx, W, H, st.grade);
+  const skyShape = shapes[st.sky.panel] || shapes[0];
+  if (st.grade === 'vice' || st.grade === 'golden') {
+    drawStripedSun(ctx, skyShape.box, st.grade, st.sky.fx, st.sky.fy);
+  } else if (st.grade === 'neon') {
+    drawNeonRings(ctx, skyShape.box, st.sky.fx, st.sky.fy);
   }
+  drawVignette(ctx, W, H);
+  drawGrain(ctx, W, H);
+  drawHalftone(ctx, W, H);
+  drawCaptions(ctx, W, H, st);
   ctx.restore();
-  drawTexture(ctx, w, h);
-  // Vignette, then a fine inner frame to finish the poster.
-  const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.36, w / 2, h / 2, Math.max(w, h) * 0.72);
-  vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  vig.addColorStop(1, `rgba(0, 0, 0, ${grade.vignette})`);
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, w, h);
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
-  ctx.lineWidth = Math.max(2, Math.min(w, h) * 0.0028);
-  const inset = Math.min(w, h) * 0.008;
-  ctx.strokeRect(inset, inset, w - inset * 2, h - inset * 2);
-  ctx.restore();
-  drawCaption(ctx, w, h, state, grade);
-}
-
-// Renders the cover onto a fresh canvas at exactly w × h — the export path.
-export function renderCoverCanvas(state, images, w, h) {
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  drawCover(canvas.getContext('2d'), w, h, state, images);
-  return canvas;
 }

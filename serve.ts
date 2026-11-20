@@ -1,6 +1,6 @@
-// Sunset Cover Studio — a tiny static file server for local preview.
-// Serves app/ at http://localhost:8080 with correct MIME types (including
-// .avif) and HEAD support. Node 22, standard library only.
+// Sunset Cover Studio — tiny static server for local previews.
+// Serves app/ on port 8080 with correct MIME types and HEAD support.
+// Node 22, standard library only.
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -18,6 +18,7 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
   '.webp': 'image/webp',
   '.avif': 'image/avif',
   '.svg': 'image/svg+xml',
@@ -31,21 +32,20 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url ?? '/', 'http://localhost');
     let path = decodeURIComponent(url.pathname);
-    if (path === '/') path = '/index.html';
+    if (path.endsWith('/')) path += 'index.html';
     const file = normalize(join(ROOT, path));
     if (!file.startsWith(ROOT)) {
-      res.writeHead(403).end('forbidden');
+      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(req.method === 'HEAD' ? undefined : 'forbidden');
       return;
     }
     const info = await stat(file);
-    if (!info.isFile()) {
-      res.writeHead(404).end('not found');
-      return;
-    }
+    if (!info.isFile()) throw new Error('not a file');
+    const type = MIME[extname(file).toLowerCase()] ?? 'application/octet-stream';
     res.writeHead(200, {
-      'content-type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
-      'content-length': info.size,
-      'cache-control': 'no-store',
+      'Content-Type': type,
+      'Content-Length': info.size,
+      'Cache-Control': 'no-store',
     });
     if (req.method === 'HEAD') {
       res.end();
@@ -53,10 +53,11 @@ const server = createServer(async (req, res) => {
     }
     res.end(await readFile(file));
   } catch {
-    res.writeHead(404).end('not found');
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(req.method === 'HEAD' ? undefined : 'not found');
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`Sunset Cover Studio at http://localhost:${PORT}`);
+  console.log('Sunset Cover Studio at http://localhost:' + PORT);
 });
