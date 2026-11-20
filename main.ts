@@ -1,11 +1,17 @@
-// Sunset Cover Studio — dossier builder for the make.fun entry.
-// Copies app/ and screenshots/ into the output directory, then writes
-// dossier.json there via the kit's buildDossier.
+// Sunset Cover Studio — the entry's hand-in program (Node 22, standard
+// library only). It stages the finished entry for the scorer: it copies the
+// offline app in app/ and the screenshots in screenshots/ from beside this
+// file into the output directory, then writes /output/dossier.json with the
+// kit's vendored library, which is the summary the judge reads.
 //
-// Every source path is anchored to this script's own directory (never to
-// the process working directory), so the build works when the grader runs
-// `node /bot/main.ts` from any cwd, against a read-only copy of the repo.
-import { cpSync, existsSync, rmSync, writeFileSync } from 'node:fs';
+// All source paths are anchored to this file's own directory — never to the
+// process working directory, which the grader does not guarantee.
+//
+// Run it locally with MAKEFUN_OUTPUT_DIR standing in for /output:
+//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// Serve the app itself with `node serve.ts`, then open http://localhost:8080.
+
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-app.ts';
@@ -13,6 +19,7 @@ import { buildDossier } from './vendor/makefun-app.ts';
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
+// The caps this entry is held to, in the shape buildDossier expects.
 const DOSSIER_CAPS = {
   text_max_bytes: 163840,
   screenshots: { max: 4, max_bytes: 262144 },
@@ -21,30 +28,20 @@ const DOSSIER_CAPS = {
   app_path_max_bytes: 1000,
 };
 
-async function main(): Promise<void> {
-  // Start from a clean slate in the output directory.
-  for (const name of ['app', 'screenshots', 'dossier.json']) {
-    rmSync(join(out, name), { recursive: true, force: true });
-  }
-  cpSync(join(here, 'app'), join(out, 'app'), { recursive: true });
-  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+// Start from a clean output directory so a stale screenshot or dossier from
+// an earlier run can never ride along with this one.
+mkdirSync(out, { recursive: true });
+rmSync(join(out, 'app'), { recursive: true, force: true });
+rmSync(join(out, 'screenshots'), { recursive: true, force: true });
+rmSync(join(out, 'dossier.json'), { force: true });
 
-  const dossier = await buildDossier(out, DOSSIER_CAPS);
-  const dossierPath = join(out, 'dossier.json');
-  if (!existsSync(dossierPath) && dossier !== undefined) {
-    // buildDossier hands back the dossier itself (bytes or text) rather
-    // than writing it; persist it verbatim, falling back to JSON for a
-    // plain-object return.
-    if (typeof dossier === 'string' || dossier instanceof Uint8Array) {
-      writeFileSync(dossierPath, dossier);
-    } else {
-      writeFileSync(dossierPath, JSON.stringify(dossier, null, 2) + '\n');
-    }
-  }
-  console.log(`Sunset Cover Studio: dossier written to ${dossierPath}`);
+cpSync(join(here, 'app'), join(out, 'app'), { recursive: true });
+mkdirSync(join(out, 'screenshots'), { recursive: true });
+if (existsSync(join(here, 'screenshots'))) {
+  cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// buildDossier returns the dossier itself (bytes); persist it verbatim.
+const dossier = buildDossier(out, DOSSIER_CAPS);
+writeFileSync(join(out, 'dossier.json'), dossier);
+console.log('dossier written to ' + join(out, 'dossier.json'));

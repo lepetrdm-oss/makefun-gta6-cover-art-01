@@ -1,54 +1,86 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sunset Cover Studio — GTA 6-style cover maker</title>
+<title>Sunset Cover Studio — GTA-style cover maker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">SUNSET <span>COVER STUDIO</span></div>
-  <p class="tagline">Turn any photo into a GTA 6-style cover. Works fully offline.</p>
-</header>
-<main class="layout">
-  <section class="stage" id="stage">
-    <canvas id="cover" width="1920" height="1080"></canvas>
-    <p class="hint">Drag a panel to pan its photo. Select a panel below to fine-tune it.</p>
-  </section>
-  <aside class="controls">
-    <div class="group">
-      <h2>Looks</h2>
-      <div class="btnrow" id="looks"></div>
-    </div>
-    <div class="group">
-      <h2>Layout</h2>
-      <div class="btnrow" id="layouts"></div>
-    </div>
-    <div class="group">
-      <h2>Colour grade</h2>
-      <div class="btnrow" id="grades"></div>
-    </div>
-    <div class="group">
-      <h2>Caption</h2>
-      <label class="field">Title
-        <input id="title" type="text" maxlength="42" autocomplete="off">
-      </label>
-      <label class="field">Subtitle
-        <input id="subtitle" type="text" maxlength="60" autocomplete="off">
-      </label>
-    </div>
-    <div class="group">
-      <h2>Export size</h2>
-      <select id="size"></select>
-      <button id="exportBtn" class="primary" type="button">Export PNG</button>
-    </div>
-    <div class="group">
-      <h2>Panels</h2>
-      <div id="panels"></div>
-    </div>
-  </aside>
-</main>
-<script type="module" src="src/main.js"></script>
+<div id="app">
+  <header class="topbar">
+    <h1>Sunset Cover Studio</h1>
+    <span class="tagline">Turn any photo into GTA 6-style cover art — offline, in your browser.</span>
+  </header>
+  <main class="layout">
+    <section class="stage">
+      <canvas id="poster" width="1920" height="1080"></canvas>
+      <div class="stage-actions">
+        <span class="hint">Click a panel to select it · drag to pan · scroll to zoom</span>
+        <span class="exports">
+          <button type="button" class="export-btn" data-size="1920x1080">Export 1920×1080</button>
+          <button type="button" class="export-btn" data-size="1080x1350">Export 1080×1350</button>
+          <button type="button" class="export-btn" data-size="1080x1080">Export 1080×1080</button>
+        </span>
+      </div>
+    </section>
+    <aside class="controls">
+      <section class="group">
+        <h2>Look</h2>
+        <label class="field"><span class="field-label">Preset look</span>
+          <select id="look-select"><option value="">Choose a look…</option></select>
+        </label>
+        <label class="field"><span class="field-label">Layout</span>
+          <select id="layout-select"></select>
+        </label>
+        <label class="field"><span class="field-label">Grade</span>
+          <select id="grade-select"></select>
+        </label>
+        <label class="field"><span class="field-label">Export size</span>
+          <select id="size-select"></select>
+        </label>
+      </section>
+      <section class="group">
+        <h2>Words</h2>
+        <label class="field"><span class="field-label">Title</span>
+          <input id="title-input" type="text">
+        </label>
+        <label class="field"><span class="field-label">Subtitle</span>
+          <input id="subtitle-input" type="text">
+        </label>
+        <label class="field"><span class="field-label">Billing block</span>
+          <input id="billing-input" type="text">
+        </label>
+      </section>
+      <section class="group">
+        <h2>Review strip</h2>
+        <label class="field"><span class="field-label">Quote 1</span><input id="quote-0" type="text"></label>
+        <label class="field"><span class="field-label">Publication 1</span><input id="pub-0" type="text"></label>
+        <label class="field"><span class="field-label">Quote 2</span><input id="quote-1" type="text"></label>
+        <label class="field"><span class="field-label">Publication 2</span><input id="pub-1" type="text"></label>
+        <label class="field"><span class="field-label">Quote 3</span><input id="quote-2" type="text"></label>
+        <label class="field"><span class="field-label">Publication 3</span><input id="pub-2" type="text"></label>
+      </section>
+      <section class="group">
+        <h2>Poster frame</h2>
+        <label class="field"><span class="field-label">Frame style</span>
+          <select id="frame-style"></select>
+        </label>
+        <label class="check"><input id="frame-toggle" type="checkbox"> Poster frame (reviews, seal, barcode)</label>
+        <label class="check"><input id="tags-toggle" type="checkbox"> Cast name tags</label>
+        <label class="check"><input id="autoframe-toggle" type="checkbox"> Auto-frame faces</label>
+        <label class="check"><input id="print-toggle" type="checkbox"> Print texture on title</label>
+      </section>
+      <section class="group">
+        <h2>Panels</h2>
+        <div id="panels"></div>
+      </section>
+    </aside>
+  </main>
+</div>
+<script src="src/state.js"></script>
+<script src="src/cover.js"></script>
+<script src="src/main.js"></script>
+<script src="src/shots.js"></script>
 </body>
 </html>

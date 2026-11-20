@@ -4,59 +4,55 @@
 [![rank](https://make.fun/badge/gta6-cover-art-01/lepetrdm-oss/makefun-gta6-cover-art-01/rank.svg)](https://make.fun/bounty/gta6-cover-art-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 [![reward](https://make.fun/badge/gta6-cover-art-01/lepetrdm-oss/makefun-gta6-cover-art-01/reward.svg)](https://make.fun/bounty/gta6-cover-art-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01)
 
-Sunset Cover Studio turns any photo into a GTA 6-style cover: a multi-panel
-poster with bold display lettering, a Vice City colour grade and a striped
-retro sun. It runs entirely offline in the browser — no uploads, no server,
-no build step.
+An offline web app that turns any photo — yours or the bundled samples — into
+GTA 6-style cover art: a multi-panel poster with bold lettering, a Vice City
+grade, and the full chrome of a cinema one-sheet. Everything runs locally in
+the browser; no photo ever leaves the device.
 
-## What it does
+**Cast billing on every panel.** Each panel wears a slanted two-line tag: the
+character's name in Anton caps (Marisol Vega, Elias Crowe, Juno Park…) over
+their role in Bebas Neue (The Driver, The Boss, The Getaway…). Names and roles
+are editable per panel, and tags automatically sit opposite the face so they
+never cover it.
 
-- **Five layouts** — One photo, Hero + two, Three panels, a Slanted trio
-  with clip-path polygon panels, gutters and light edge strokes, and a
-  Four-panel grid.
-- **Per-panel control** — pick one of the five bundled sample photos or
-  upload your own, drag to pan, zoom with a slider, reset, or apply one
-  panel's photo and framing to every panel at once.
-- **Four colour grades** — Vice Sunset, Neon Nights, Golden Hour and Noir,
-  each a multi-stop colour wash plus a vignette. Vice and Golden draw a
-  striped retro sun over the sky; Neon draws glowing rings instead.
-- **Cover typography** — the title is set in Anton with a layered render
-  (drop shadow, accent offset, heavy outline, gradient fill); the subtitle
-  is set in Bebas Neue with a line–diamond–line flourish. Both fonts are
-  open-licensed (OFL) and bundled under `app/fonts/`.
-- **Three one-click Looks** — Key Art, Neon Portrait and Golden Grid
-  presets that combine a layout, a grade, photos, caption and size.
-- **Deterministic finish** — seeded film grain (mulberry32) and a halftone
-  dot fade, identical on every render. No randomness, no network calls.
-- **PNG export** at 1080×1080, 1080×1350 and 1920×1080 from an offscreen
-  canvas, exactly the size you pick.
+**A real poster frame.** The masthead carries three five-star pull-quotes
+from three fictional papers, a VOL. 1 tag, a gold starburst "Original Cover
+Art" seal, a deterministic barcode, a tiny billing block, and a COMING SOON
+strip. Two frame styles: the overlaid **Sunset** frame, and **Premiere** — a
+black-and-gold gala one-sheet with deep black bands, thin gold rules, and an
+ivory title.
+
+**Face-aware auto-framing.** Bundled photos carry focal-point metadata and
+uploads get a focal point from a lightweight saliency scan (skin-tone and
+contrast weighting), so the default crop centres the face in every panel;
+drag to pan and scroll to zoom from there.
+
+**Seven layouts** — One photo, Hero + two, Three panels, Slanted trio,
+Four-panel grid, Hero collage (hero + 2×2 + wide strip), and the diagonal
+Splash — and **five grades**: Vice Sunset, Neon Nights, Golden Hour, Noir,
+and Heatwave, each with a multi-stop wash, vignette, seeded film grain and
+halftone, plus a striped retro sun or neon rings parked in open sky. The
+Anton title is layered (shadow, accent offset, heavy outline, chrome
+gradient) with an optional distressed print texture, so it reads as printed
+ink, not web text. Export a finished PNG at 1080×1080, 1080×1350, or
+1920×1080.
 
 ## Run it
-
-Serve the repository root with the bundled static server (Node 22, no
-dependencies):
 
 ```sh
 node serve.ts
 ```
 
-Then open <http://localhost:8080/app/index.html>. Or open `app/index.html`
-through any static file server — the app itself is plain HTML, CSS and JS
-under `app/`.
+Then open http://localhost:8080. Pick a look, swap photos per panel (or
+upload your own), edit the cast names, quotes and title, and export.
 
 ## Hand it in
 
-`main.ts` builds the entry dossier: it copies `app/` and `screenshots/`
-into `$MAKEFUN_OUTPUT_DIR` (default `/output`) and writes `dossier.json`
-there with the kit's `buildDossier`. All source paths are anchored to the
-script's own directory, so it works from any working directory:
-
 ```sh
-MAKEFUN_OUTPUT_DIR=out node main.ts
+mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-The screenshots in `screenshots/` are real renders of this app (the
-`?shot=` scenes in `app/src/shots.js` pose the cover and the editor for
-the camera), and `shots.json` records how each one was taken.
+`main.ts` copies `app/` and `screenshots/` into the output directory and
+writes `dossier.json` there with the kit's `buildDossier`.
 
 <sub>Entered on [make.fun](https://make.fun/?ref=qz2ckkv2&utm_source=github&utm_medium=readme&utm_campaign=gta6-cover-art-01) · AI agents build software for cash rewards</sub>

@@ -1,4 +1,3 @@
-/* Sunset Cover Studio — editor chrome. Dark, neon-trimmed, offline. */
 @font-face {
   font-family: 'Anton';
   src: url('fonts/Anton-Regular.ttf') format('truetype');
@@ -11,145 +10,167 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+
 body {
-  background: #0d0618;
-  color: #f5eefc;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  margin: 0;
+  background: #0d0a16;
+  color: #f2ede4;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+#app { max-width: 1560px; margin: 0 auto; padding: 18px 20px 28px; }
+
 .topbar {
-  padding: 18px 26px 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
-.brand {
+.topbar h1 {
   font-family: 'Anton', sans-serif;
   font-size: 30px;
   letter-spacing: 1px;
-  color: #ffffff;
+  margin: 0;
+  color: #ffd166;
+  text-transform: uppercase;
 }
-.brand span {
-  background: linear-gradient(90deg, #ff2e88, #ffb300);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.tagline { margin: 4px 0 10px; color: #b9a8d9; font-size: 14px; }
+.tagline { color: #b9b0c9; font-size: 14px; }
 
 .layout {
   display: flex;
-  gap: 22px;
+  gap: 18px;
   align-items: flex-start;
-  padding: 10px 26px 30px;
 }
+
 .stage { flex: 1 1 auto; min-width: 0; }
 .stage canvas {
   width: 100%;
   height: auto;
   display: block;
-  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 6px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
   cursor: grab;
-  background: #05030d;
+  background: #000;
 }
 .stage canvas:active { cursor: grabbing; }
-.hint { color: #8f7fb8; font-size: 13px; margin: 10px 2px 0; }
+
+.stage-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.hint { color: #8f86a3; font-size: 12.5px; }
+.exports { display: flex; gap: 8px; flex-wrap: wrap; }
+
+button {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1px;
+  font-size: 15px;
+  background: #241a3d;
+  color: #ffd166;
+  border: 1px solid #4a3577;
+  border-radius: 5px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+button:hover { background: #32235a; }
+button.mini { font-size: 13px; padding: 5px 10px; color: #e8e2f2; }
 
 .controls {
-  flex: 0 0 322px;
+  flex: 0 0 320px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 .group {
-  background: #170b2c;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: #171126;
+  border: 1px solid #2b2145;
   border-radius: 8px;
-  padding: 12px 14px 14px;
+  padding: 12px 14px;
 }
 .group h2 {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 19px;
+  font-size: 17px;
   letter-spacing: 2px;
+  color: #ff2e88;
   margin: 0 0 10px;
-  color: #ffd9ec;
 }
-.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: #241243;
-  color: #f5eefc;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  cursor: pointer;
+
+.field { display: block; margin-bottom: 9px; }
+.field-label {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9c92b3;
+  margin-bottom: 4px;
 }
-.chip:hover { border-color: #ff2e88; }
-.chip.active {
-  background: #ff2e88;
-  border-color: #ff2e88;
-  color: #ffffff;
-  font-weight: 600;
-}
-.field { display: block; font-size: 13px; color: #b9a8d9; margin-bottom: 10px; }
-.field input, .group select, .panelbox select {
+.field input[type='text'],
+.field select,
+.field input[type='file'] {
   width: 100%;
-  margin-top: 5px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: #0d0618;
-  color: #ffffff;
+  background: #0f0b1d;
+  color: #f2ede4;
+  border: 1px solid #3a2c5c;
+  border-radius: 5px;
+  padding: 6px 8px;
   font-size: 14px;
 }
-#title { font-family: 'Anton', sans-serif; letter-spacing: 0.5px; }
-#subtitle { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; }
-.primary {
-  width: 100%;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #ff2e88, #ff7b39);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
+.field input[type='range'] { width: 100%; accent-color: #ff2e88; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  margin-bottom: 8px;
   cursor: pointer;
 }
-.primary:hover { filter: brightness(1.1); }
+.check input { accent-color: #ffd166; width: 16px; height: 16px; }
 
-.panelbox {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  padding: 10px 12px 12px;
-  margin: 0 0 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
+.panel-card {
+  border: 1px solid #2b2145;
+  border-radius: 7px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #120d20;
 }
-.panelbox.selected { border-color: #00e5ff; }
-.panelbox legend {
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: 1.5px;
-  font-size: 15px;
-  color: #ffd9ec;
-  padding: 0 6px;
+.panel-card.active { border-color: #ffd166; }
+.panel-head {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #ffd166;
+  font-size: 16px;
+  padding: 0 0 8px;
 }
-.panelbox label { font-size: 12px; color: #b9a8d9; display: flex; align-items: center; gap: 8px; }
-.panelbox input[type='range'] { flex: 1; accent-color: #ff2e88; }
+.btn-row { display: flex; gap: 8px; }
 
-/* Screenshot modes (driven by ?shot= in shots.js). */
-body.shot-cover .topbar,
-body.shot-cover .controls,
-body.shot-cover .hint { display: none; }
-body.shot-cover .layout { padding: 0; gap: 0; }
-body.shot-cover .stage canvas {
+/* Screenshot mode: poster only, filling the viewport. */
+body.shot { background: #000; }
+body.shot #app { max-width: none; padding: 0; }
+body.shot .topbar,
+body.shot .controls,
+body.shot .stage-actions { display: none; }
+body.shot .layout { display: block; }
+body.shot .stage canvas {
   width: 100vw;
   height: 100vh;
-  border: none;
+  object-fit: contain;
   border-radius: 0;
   box-shadow: none;
   cursor: default;
 }
-body.shot-editor .layout { padding-top: 4px; }
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .controls { flex: 1 1 auto; width: 100%; max-height: none; }
+}

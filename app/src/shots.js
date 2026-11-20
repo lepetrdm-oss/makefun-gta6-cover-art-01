@@ -1,23 +1,48 @@
 // Sunset Cover Studio — screenshot hooks.
-// ?shot=cover   renders just the cover, filling the viewport.
-// ?shot=editor  renders the full editor with a Look loaded.
-// Optional params: ?look=<look id> and ?size=<cover size id>.
-// When the requested scene is fully rendered (photos decoded, fonts
-// loaded), window.__shotReady is set so the screenshot driver can fire.
-export function setupShots(api) {
-  const params = new URLSearchParams(window.location.search);
-  const shot = params.get('shot');
-  if (shot !== 'cover' && shot !== 'editor') return;
+// ?shot=cover        Key Art poster only (feed image)
+// ?shot=cover-neon   Neon Portrait poster only
+// ?shot=cover-golden Golden Grid poster only
+// ?shot=editor       editor with Neon Portrait loaded
+// Each mode sets window.__shotReady once the scene is fully rendered.
 
-  if (shot === 'cover') api.markCoverMode();
-  else api.markEditorMode();
+'use strict';
 
-  const look = params.get('look');
-  if (look) api.applyLook(look);
-  const size = params.get('size');
-  if (size) api.setSize(size);
+(function () {
+  const mode = new URLSearchParams(location.search).get('shot');
+  if (!mode) return;
+  const studio = window.__studio;
+  if (!studio) return;
 
-  api.whenReady().then(() => {
-    window.__shotReady = true;
-  });
-}
+  if (mode === 'cover') {
+    document.body.classList.add('shot');
+    studio.applyLook('keyart');
+  } else if (mode === 'cover-neon') {
+    document.body.classList.add('shot');
+    studio.applyLook('neonportrait');
+  } else if (mode === 'cover-golden') {
+    document.body.classList.add('shot');
+    studio.applyLook('goldengrid');
+  } else if (mode === 'editor') {
+    studio.applyLook('neonportrait');
+    studio.state.selected = 1;
+    studio.render();
+  } else {
+    return;
+  }
+
+  let tries = 0;
+  const tick = () => {
+    tries++;
+    if (studio.allSamplesLoaded() || tries > 200) {
+      const done = () => {
+        studio.render();
+        requestAnimationFrame(() => { window.__shotReady = true; });
+      };
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(done);
+      else done();
+    } else {
+      setTimeout(tick, 50);
+    }
+  };
+  tick();
+})();
