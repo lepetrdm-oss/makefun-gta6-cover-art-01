@@ -1,12 +1,9 @@
-/* Sunset Cover Studio — editor chrome. Dark, neon-trimmed, and kept
-   compact so the cover itself stays the biggest thing on screen. */
-
+/* Sunset Cover Studio — editor chrome. Dark, neon-trimmed, offline. */
 @font-face {
   font-family: 'Anton';
   src: url('fonts/Anton-Regular.ttf') format('truetype');
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Bebas Neue';
   src: url('fonts/BebasNeue-Regular.ttf') format('truetype');
@@ -14,162 +11,145 @@
 }
 
 * { box-sizing: border-box; }
-
+html, body { margin: 0; padding: 0; }
 body {
-  margin: 0;
-  background: #12041f;
-  color: #f5e9dc;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0d0618;
+  color: #f5eefc;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .topbar {
-  display: flex;
-  align-items: baseline;
-  gap: 18px;
-  padding: 12px 20px;
-  background: linear-gradient(90deg, #2a0a4a, #57104a 55%, #8a1440);
-  border-bottom: 3px solid #ff2e88;
+  padding: 18px 26px 6px;
 }
-
 .brand {
   font-family: 'Anton', sans-serif;
-  font-size: 26px;
+  font-size: 30px;
   letter-spacing: 1px;
   color: #ffffff;
 }
-
-.brand span { color: #ffd23d; }
-
-.tagline {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 2px;
-  color: #ffc7dd;
+.brand span {
+  background: linear-gradient(90deg, #ff2e88, #ffb300);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
+.tagline { margin: 4px 0 10px; color: #b9a8d9; font-size: 14px; }
 
 .layout {
   display: flex;
+  gap: 22px;
   align-items: flex-start;
-  gap: 0;
+  padding: 10px 26px 30px;
 }
-
-#controls {
-  width: 322px;
-  flex: 0 0 322px;
-  padding: 14px 16px 20px;
-  background: #1a0730;
-  border-right: 2px solid #3a1160;
-  max-height: calc(100vh - 57px);
-  overflow-y: auto;
-}
-
-#controls section { margin-bottom: 16px; }
-
-#controls h2 {
-  margin: 0 0 8px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
-  letter-spacing: 2.5px;
-  color: #ffd23d;
-}
-
-#controls label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 12.5px;
-  color: #d9c7ee;
-}
-
-#controls input[type="text"],
-#controls select {
+.stage { flex: 1 1 auto; min-width: 0; }
+.stage canvas {
   width: 100%;
-  margin-top: 3px;
-  padding: 6px 8px;
-  background: #0f0320;
-  color: #ffffff;
-  border: 1px solid #4a2078;
-  border-radius: 4px;
-  font-size: 14px;
+  height: auto;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  cursor: grab;
+  background: #05030d;
 }
+.stage canvas:active { cursor: grabbing; }
+.hint { color: #8f7fb8; font-size: 13px; margin: 10px 2px 0; }
 
-#controls input[type="range"] { width: 100%; margin-top: 3px; accent-color: #ff2e88; }
-
-#controls input[type="file"] { margin-top: 3px; font-size: 12px; color: #d9c7ee; }
-
-.row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-
-button {
-  padding: 6px 10px;
-  background: #2a0f47;
-  color: #f5e9dc;
-  border: 1px solid #5a2a8a;
-  border-radius: 4px;
-  font-size: 12.5px;
+.controls {
+  flex: 0 0 322px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.group {
+  background: #170b2c;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  padding: 12px 14px 14px;
+}
+.group h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px;
+  letter-spacing: 2px;
+  margin: 0 0 10px;
+  color: #ffd9ec;
+}
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: #241243;
+  color: #f5eefc;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
   cursor: pointer;
 }
-
-button:hover { border-color: #ff2e88; }
-
-button.active {
+.chip:hover { border-color: #ff2e88; }
+.chip.active {
   background: #ff2e88;
   border-color: #ff2e88;
   color: #ffffff;
   font-weight: 600;
 }
-
-button.export {
+.field { display: block; font-size: 13px; color: #b9a8d9; margin-bottom: 10px; }
+.field input, .group select, .panelbox select {
   width: 100%;
-  padding: 11px;
-  font-family: 'Anton', sans-serif;
-  font-size: 17px;
-  letter-spacing: 1px;
-  background: linear-gradient(90deg, #ff7b3d, #ff2e88);
-  border: none;
+  margin-top: 5px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: #0d0618;
   color: #ffffff;
+  font-size: 14px;
 }
+#title { font-family: 'Anton', sans-serif; letter-spacing: 0.5px; }
+#subtitle { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; }
+.primary {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ff2e88, #ff7b39);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.primary:hover { filter: brightness(1.1); }
 
-.hint { font-size: 11.5px; line-height: 1.45; color: #a98fc9; }
-
-.stage-wrap {
-  flex: 1;
+.panelbox {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 10px 12px 12px;
+  margin: 0 0 10px;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 16px;
-  background: radial-gradient(circle at 50% 30%, #22103f 0%, #12041f 70%);
-  min-height: calc(100vh - 57px);
+  flex-direction: column;
+  gap: 9px;
 }
-
-#stage {
-  max-width: 100%;
-  max-height: calc(100vh - 90px);
-  width: auto;
-  height: auto;
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6);
-  cursor: grab;
-  background: #150722;
+.panelbox.selected { border-color: #00e5ff; }
+.panelbox legend {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 1.5px;
+  font-size: 15px;
+  color: #ffd9ec;
+  padding: 0 6px;
 }
+.panelbox label { font-size: 12px; color: #b9a8d9; display: flex; align-items: center; gap: 8px; }
+.panelbox input[type='range'] { flex: 1; accent-color: #ff2e88; }
 
-#stage:active { cursor: grabbing; }
-
-/* Screenshot scene: ?shot=cover — the cover fills the viewport. */
-body.cover-shot .topbar,
-body.cover-shot #controls { display: none; }
-
-body.cover-shot .layout { display: block; }
-
-body.cover-shot .stage-wrap {
-  padding: 0;
-  min-height: 100vh;
-  background: #150722;
-}
-
-body.cover-shot #stage {
+/* Screenshot modes (driven by ?shot= in shots.js). */
+body.shot-cover .topbar,
+body.shot-cover .controls,
+body.shot-cover .hint { display: none; }
+body.shot-cover .layout { padding: 0; gap: 0; }
+body.shot-cover .stage canvas {
   width: 100vw;
   height: 100vh;
-  max-width: none;
-  max-height: none;
-  object-fit: cover;
+  border: none;
+  border-radius: 0;
   box-shadow: none;
   cursor: default;
 }
+body.shot-editor .layout { padding-top: 4px; }
